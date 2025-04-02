@@ -2,14 +2,15 @@
 pragma solidity ^0.8.28;
 
 import "./callback/TokenCallback.sol";
+import "./interfaces/IControllerRegistry.sol";
 
 contract Wallet is TokenCallbackHandler {
     address public owner;
-    mapping(address => mapping(bytes32 => bool)) public controllerPermissions;
-    bool public initialized;
 
-    // Permission for token operations
-    bytes32 public constant TOKEN_OPERATIONS = keccak256("TOKEN_OPERATIONS");
+    IControllerRegistry public controllerRegistry;
+    mapping(address => mapping(bytes32 => bool)) public controllerPermissions;
+
+    bool public initialized;
 
     event PermissionUpdated(address indexed controller, bytes32 indexed permission, bool allowed);
     event OwnershipTransferred(address indexed newOwner);
@@ -21,7 +22,7 @@ contract Wallet is TokenCallbackHandler {
     }
 
     modifier onlyController(bytes32 permission) {
-        require(controllerPermissions[msg.sender][permission], "Permission denied");
+        require(controllerRegistry.hasPermission(msg.sender, permission), "Permission denied");
         _;
     }
 
@@ -31,20 +32,22 @@ contract Wallet is TokenCallbackHandler {
         initialized = true;
     }
 
-    function initialize(address _owner) external onlyOnce {
+    function initialize(address _owner, address _controllerRegistry) external onlyOnce {
         require(_owner != address(0), "Invalid owner");
+        require(_controllerRegistry != address(0), "Invalid controller registry");
         owner = _owner;
-    }
-
-    function setControllerPermission(address controller, bytes32 permission, bool allowed) external onlyOwner {
-        controllerPermissions[controller][permission] = allowed;
-        emit PermissionUpdated(controller, permission, allowed);
+        controllerRegistry = IControllerRegistry(_controllerRegistry);
     }
 
     function transferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "Zero address");
         owner = newOwner;
         emit OwnershipTransferred(newOwner);
+    }
+
+    function setControllerPermission(address controller, bytes32 permission, bool allowed) external onlyOwner {
+        controllerPermissions[controller][permission] = allowed;
+        emit PermissionUpdated(controller, permission, allowed);
     }
 
     function ownerExecute(address target, uint256 value, bytes calldata data) external onlyOwner {

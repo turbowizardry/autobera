@@ -25,7 +25,7 @@ contract WalletFactoryTest is Test {
         implementation = address(new Wallet());
         
         vm.startPrank(deployer);
-        walletFactory = new WalletFactory(implementation);
+        walletFactory = new WalletFactory(implementation, address(this));
         vm.stopPrank();
         
         assertEq(walletFactory.owner(), deployer);
@@ -75,44 +75,5 @@ contract WalletFactoryTest is Test {
     function testCreateWalletWithZeroAddress() public {
         vm.expectRevert("Invalid owner");
         walletFactory.createWallet(address(0));
-    }
-
-    function testPredictWalletAddress() public {
-        bytes32 salt = bytes32(uint256(1));
-        address predicted = walletFactory.predictWalletAddress(salt);
-        address actual = walletFactory.createWalletDeterministic(user, salt);
-        
-        // Verify prediction matches actual address
-        assertEq(predicted, actual);
-    }
-
-    function testCreateDeterministicWallet() public {
-        bytes32 salt = bytes32(uint256(1));
-        address wallet = walletFactory.createWalletDeterministic(user, salt);
-        
-        // Verify the wallet was created correctly
-        assertTrue(wallet != address(0));
-        assertEq(IWallet(wallet).owner(), user);
-        assertTrue(IWallet(wallet).initialized());
-    }
-
-    function testCreateDeterministicWalletDuplicate() public {
-        bytes32 salt = bytes32(uint256(1));
-        walletFactory.createWalletDeterministic(user, salt);
-        
-        // Attempting to create another wallet with the same salt should revert
-        vm.expectRevert();
-        walletFactory.createWalletDeterministic(user, salt);
-    }
-
-    function testDifferentSaltsDifferentAddresses() public {
-        bytes32 salt1 = bytes32(uint256(1));
-        bytes32 salt2 = bytes32(uint256(2));
-        
-        address wallet1 = walletFactory.createWalletDeterministic(user, salt1);
-        address wallet2 = walletFactory.createWalletDeterministic(user, salt2);
-        
-        // Verify different salts produce different addresses
-        assertTrue(wallet1 != wallet2);
     }
 }

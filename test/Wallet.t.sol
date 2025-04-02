@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import {Test, console, Vm} from "forge-std/Test.sol";
 import {WalletFactory} from "../contracts/WalletFactory.sol";
 import {Wallet} from "../contracts/Wallet.sol";
+import {ControllerRegistry} from "../contracts/ControllerRegistry.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -43,26 +44,34 @@ contract MockExternalContract {
 
 contract WalletTest is Test {
     Wallet public wallet;
+    ControllerRegistry public controllerRegistry;
     MockERC20 public token;
     MockERC721 public nft;
     MockExternalContract public externalContract;
+    
     address public owner;
     address public user1;
     address public user2;
+    address public controller1;
+
     bytes32 public constant TOKEN_OPERATIONS = keccak256("TOKEN_OPERATIONS");
 
     function setUp() public {
         owner = address(this);
         user1 = makeAddr("user1");
         user2 = makeAddr("user2");
-        
+        controller1 = makeAddr("controller1");
+
         // Deploy contracts
+        controllerRegistry = new ControllerRegistry();
         wallet = new Wallet();
-        wallet.initialize(owner);
+        wallet.initialize(owner, address(controllerRegistry));
+
         token = new MockERC20();
         nft = new MockERC721();
         externalContract = new MockExternalContract(address(token));
-        
+        controllerRegistry.registerController(controller1, "TOKEN_OPERATIONS", "Token Operations", "1.0", "Token operations permission");
+
         // Setup initial balances
         vm.deal(address(wallet), 100 ether);
         token.transfer(address(wallet), 1000 * 10**token.decimals());
@@ -144,7 +153,7 @@ contract WalletTest is Test {
         assertEq(nft.ownerOf(tokenId), user2);
     }
 
-    function testFailUnauthorizedTokenOperation() public {
+    function testRevertUnauthorizedTokenOperation() public {
         vm.startPrank(user2); // user2 has no permissions
         bytes memory transferData = abi.encodeWithSelector(
             IERC20.transfer.selector,
