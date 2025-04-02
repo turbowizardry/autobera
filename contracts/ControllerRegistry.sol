@@ -53,9 +53,9 @@ contract ControllerRegistry is Ownable {
   function hasPermission(address controller, bytes32 permissionKey) external view returns (bool) {
     ControllerInfo[] storage controllers = controllersByPermission[bytes32ToString(permissionKey)];
     for (uint i = 0; i < controllers.length; i++) {
-        if (controllers[i].controller == controller && controllers[i].isActive) {
-            return true;
-        }
+      if (controllers[i].controller == controller && controllers[i].isActive) {
+        return true;
+      }
     }
     return false;
   }
@@ -63,7 +63,7 @@ contract ControllerRegistry is Ownable {
   function bytes32ToString(bytes32 _bytes32) internal pure returns (string memory) {
     bytes memory bytesArray = new bytes(32);
     for (uint256 i = 0; i < 32; i++) {
-        bytesArray[i] = _bytes32[i];
+      bytesArray[i] = _bytes32[i];
     }
     return string(bytesArray);
   }
