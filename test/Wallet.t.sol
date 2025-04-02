@@ -2,8 +2,8 @@
 pragma solidity ^0.8.28;
 
 import {Test, console, Vm} from "forge-std/Test.sol";
-import {WalletFactory} from "../src/WalletFactory.sol";
-import {Wallet} from "../src/Wallet.sol";
+import {WalletFactory} from "../contracts/WalletFactory.sol";
+import {Wallet} from "../contracts/Wallet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
