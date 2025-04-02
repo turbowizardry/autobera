@@ -14,24 +14,28 @@ contract ControllerRegistry is Ownable {
   }
 
   // permissionKey => list of controllers
-  mapping(string => ControllerInfo[]) public controllersByPermission;
+  mapping(bytes32 => ControllerInfo[]) public controllersByPermission;
 
-  event ControllerRegistered(address controller, string permissionKey, string version);
-  event ControllerDeactivated(address controller, string permissionKey);
+  event ControllerRegistered(address controller, bytes32 permissionKey, string version);
+  event ControllerDeactivated(address controller, bytes32 permissionKey);
 
   constructor() Ownable(msg.sender) {}
 
   function registerController(
     address controller,
-    string calldata permissionKey,
+    bytes32 permissionKey,
     string calldata name,
     string calldata version,
     string calldata description
   ) external onlyOwner {
+    require(controller != address(0), "Invalid controller address");
+    require(permissionKey != bytes32(0), "Invalid permission key");
+    require(controllersByPermission[permissionKey].length == 0, "Permission key already registered");
+
     controllersByPermission[permissionKey].push(ControllerInfo({
       controller: controller,
       name: name,
-      permissionKey: keccak256(abi.encodePacked(permissionKey)),
+      permissionKey: permissionKey,
       version: version,
       description: description,
       isActive: true
@@ -40,35 +44,32 @@ contract ControllerRegistry is Ownable {
     emit ControllerRegistered(controller, permissionKey, version);
   }
 
-  function deactivateController(string calldata permissionKey, uint index) external onlyOwner {
+  function deactivateController(bytes32 permissionKey, uint index) external onlyOwner {
+    require(controllersByPermission[permissionKey].length > 0, "Permission key not registered");
+    require(index < controllersByPermission[permissionKey].length, "Invalid index");
+
     ControllerInfo storage info = controllersByPermission[permissionKey][index];
     info.isActive = false;
     emit ControllerDeactivated(info.controller, permissionKey);
   }
 
-  function getControllers(string calldata permissionKey) external view returns (ControllerInfo[] memory) {
+  function getControllers(bytes32 permissionKey) external view returns (ControllerInfo[] memory) {
     return controllersByPermission[permissionKey];
   }
 
   function hasPermission(address controller, bytes32 permissionKey) external view returns (bool) {
-    ControllerInfo[] storage controllers = controllersByPermission[bytes32ToString(permissionKey)];
+    require(controller != address(0), "Invalid controller address");
+    require(permissionKey != bytes32(0), "Invalid permission key");
+    require(controllersByPermission[permissionKey].length > 0, "Permission key not registered");
+
+    ControllerInfo[] storage controllers = controllersByPermission[permissionKey];
+
     for (uint i = 0; i < controllers.length; i++) {
       if (controllers[i].controller == controller && controllers[i].isActive) {
         return true;
       }
     }
+
     return false;
-  }
-
-  function bytes32ToString(bytes32 _bytes32) internal pure returns (string memory) {
-    bytes memory bytesArray = new bytes(32);
-    for (uint256 i = 0; i < 32; i++) {
-      bytesArray[i] = _bytes32[i];
-    }
-    return string(bytesArray);
-  }
-
-  function getPermissionKey(string calldata permissionKey) external pure returns (bytes32) {
-    return keccak256(abi.encodePacked(permissionKey));
   }
 }
