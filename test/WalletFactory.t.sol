@@ -49,7 +49,10 @@ contract WalletFactoryTest is Test {
 
     function testCreateWallet() public {
         address owner = address(0x3);
-        address wallet = walletFactory.createWallet(owner);
+
+        vm.startPrank(owner);
+        address wallet = walletFactory.createWallet();
+        vm.stopPrank();
         
         // Verify the wallet was created correctly
         assertTrue(wallet != address(0));
@@ -61,8 +64,13 @@ contract WalletFactoryTest is Test {
         address owner1 = address(0x3);
         address owner2 = address(0x4);
         
-        address wallet1 = walletFactory.createWallet(owner1);
-        address wallet2 = walletFactory.createWallet(owner2);
+        vm.startPrank(owner1);
+        address wallet1 = walletFactory.createWallet();
+        vm.stopPrank();
+
+        vm.startPrank(owner2);
+        address wallet2 = walletFactory.createWallet();
+        vm.stopPrank();
         
         // Verify wallets are different
         assertTrue(wallet1 != wallet2);
@@ -70,10 +78,5 @@ contract WalletFactoryTest is Test {
         // Verify each wallet's ownership
         assertEq(IWallet(wallet1).owner(), owner1);
         assertEq(IWallet(wallet2).owner(), owner2);
-    }
-
-    function testCreateWalletWithZeroAddress() public {
-        vm.expectRevert("Invalid owner");
-        walletFactory.createWallet(address(0));
     }
 }
