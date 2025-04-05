@@ -11,7 +11,7 @@ contract Wallet is TokenCallbackHandler {
 
   bool public initialized;
 
-  event TokenOperation(address indexed token, bytes4 indexed selector, address indexed target, uint256 value);
+  event WalletOperation(address indexed target, bytes4 indexed selector, address indexed wallet, uint256 value);
 
   modifier onlyOwner() {
     require(msg.sender == owner, "Not owner");
@@ -55,7 +55,7 @@ contract Wallet is TokenCallbackHandler {
       selector := mload(ptr)
     }
     
-    emit TokenOperation(target, selector, msg.sender, value);
+    emit WalletOperation(target, selector, msg.sender, value);
   }
 
   receive() external payable {}

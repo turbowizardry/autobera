@@ -2,14 +2,14 @@
 pragma solidity ^0.8.28;
 
 import {Test, console, Vm} from "forge-std/Test.sol";
-import {WalletFactory} from "../contracts/WalletFactory.sol";
-import {Wallet} from "../contracts/Wallet.sol";
-import {ControllerRegistry} from "../contracts/ControllerRegistry.sol";
+import {WalletFactory} from "../src/WalletFactory.sol";
+import {Wallet} from "../src/Wallet.sol";
+import {ControllerRegistry} from "../src/ControllerRegistry.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {IWallet} from "../contracts/interfaces/IWallet.sol";
+import {IWallet} from "../src/interfaces/IWallet.sol";
 
 contract MockERC20 is ERC20 {
   constructor() ERC20("Mock Token", "MTK") {
@@ -137,39 +137,72 @@ contract WalletTest is Test {
     // Verify wallet balance hasn't changed
     assertEq(address(wallet).balance, withdrawAmount);
   }
-  
 
-  // function testTransferNativeETH() public {
-  //   uint256 initialBalance = address(user1).balance;
-  //   uint256 transferAmount = 1 ether;
+  function testUserDepositERC20ToWallet() public {
+    uint256 initialBalance = token.balanceOf(address(user1));
+    uint256 depositAmount = 100 * 10**token.decimals();
+
+    // Deposit ERC20 using user1
+    vm.startPrank(user1);
+    token.approve(address(user1), depositAmount);
+    token.transfer(address(wallet), depositAmount);
+    vm.stopPrank();
+
+    assertEq(token.balanceOf(address(user1)), initialBalance - depositAmount);
+    assertEq(token.balanceOf(address(wallet)), depositAmount);
+  }
+
+  function testUserTransferERC20ToAndFromWallet() public {
+    uint256 userInitialBalance = token.balanceOf(address(user1));
+    uint256 walletInitialBalance = token.balanceOf(address(wallet));
+    uint256 withdrawAmount = 100 * 10**token.decimals();
+
+    // Deposit ERC20 using user1
+    vm.startPrank(user1);
+    token.approve(address(user1), withdrawAmount);
+    token.transfer(address(wallet), withdrawAmount);
+    vm.stopPrank();
+
+    assertEq(token.balanceOf(address(user1)), userInitialBalance - withdrawAmount);
+    assertEq(token.balanceOf(address(wallet)), walletInitialBalance + withdrawAmount);
+
+    // Withdraw ERC20 using user1
+    bytes memory transferData = abi.encodeWithSelector(
+      IERC20.transfer.selector,
+      user1,
+      withdrawAmount
+    );
     
-  //   // Transfer BERA using owner
-  //   wallet.ownerExecute(user1, transferAmount, "");
-  //   assertEq(address(user1).balance, initialBalance + transferAmount);
-    
-  //   // Transfer BERA using controller with permission
-  //   vm.startPrank(user1);
-  //   wallet.controllerExecute(user2, transferAmount, "", TOKEN_OPERATIONS);
-  //   vm.stopPrank();
-    
-  //   assertEq(address(user2).balance, transferAmount);
-  // }
+    vm.startPrank(user1);
+    wallet.ownerExecute(address(token), 0, transferData);
+    vm.stopPrank();
+
+    assertEq(token.balanceOf(address(user1)), userInitialBalance);
+    assertEq(token.balanceOf(address(wallet)), walletInitialBalance);
+  }
+
 
   function testControllerOperations() public {
+    uint256 userInitialBalance = token.balanceOf(address(user1));
     uint256 transferAmount = 100 * 10**token.decimals();
     
+    vm.startPrank(user1);
+    token.approve(address(user1), transferAmount);
+    token.transfer(address(wallet), transferAmount);
+    vm.stopPrank();
+
     bytes memory transferData = abi.encodeWithSelector(
       IERC20.transfer.selector,
       user1,
       transferAmount
     );
 
-    // Execute as controller
-    vm.startPrank(owner);
-    wallet.controllerExecute(address(token), transferAmount, transferData, TOKEN_OPERATIONS);
+    // Execute as controller1 instead of owner
+    vm.startPrank(controller1);
+    wallet.controllerExecute(address(token), 0, transferData, TOKEN_OPERATIONS);
     vm.stopPrank();
     
-    assertEq(token.balanceOf(user1), transferAmount);
+    assertEq(token.balanceOf(user1), userInitialBalance);
   }
 
   // function testRevertUnauthorizedTokenOperation() public {

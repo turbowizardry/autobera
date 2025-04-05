@@ -1,50 +1,36 @@
-# AutoBera
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A flexible and secure smart contract wallet that automates PoL activities on Berachain. Whilst liquid BGT is cool, I'm biased in owning native BGT to maximise returns, control your votes, and overall be a very savvy Bera. You own the contract and give permissions to controllers to automate tasks on your behalf.
+## Getting Started
 
-## Features
+First, run the development server:
 
-- Auto-claim BGT
-- Auto-boost your preferred validator
-- Auto-claim your incentives
-- Auto-swap your incentives to your preferred token
-- Delegate your earned BGT for governance
-
-## Contract Structure
-
-- `Wallet.sol`: Main wallet implementation
-- `WalletFactory.sol`: Factory contract for deploying new wallets
-- `ControllerRegistry.sol`: Registry for controller contracts with specific functions
-
-## Usage
-
-### Owner Operations
-
-```solidity
-// Transfer BERA
-wallet.ownerExecute(recipient, amount, "");
-
-// Transfer ERC20 / LP Tokens
-wallet.ownerExecute(tokenAddress, 0, transferData);
-
-// Transfer NFTs
-wallet.ownerExecute(nftAddress, 0, transferData);
-```
-
-### Controller Operations
-
-```solidity
-// Execute token operations (requires TOKEN_OPERATIONS permission)
-wallet.controllerExecute(target, data, TOKEN_OPERATIONS, value);
-```
-
-## Testing
-
-Run tests using Foundry:
 ```bash
-forge test
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## License
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-MIT
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
