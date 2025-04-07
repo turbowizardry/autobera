@@ -1,7 +1,7 @@
-import ContentSelect from "@/components/contentSelect";
+import Hero from "@/components/hero";
 
 export default function Home() {
   return (
-    <ContentSelect />
+    <Hero />
   )
 }

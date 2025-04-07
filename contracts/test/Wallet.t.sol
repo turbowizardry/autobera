@@ -5,6 +5,7 @@ import {Test, console, Vm} from "forge-std/Test.sol";
 import {WalletFactory} from "../src/WalletFactory.sol";
 import {Wallet} from "../src/Wallet.sol";
 import {ControllerRegistry} from "../src/ControllerRegistry.sol";
+import {WalletPermissions} from "../src/WalletPermissions.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -47,8 +48,8 @@ contract WalletTest is Test {
   Wallet public walletImplementation;
   WalletFactory public factory;
   ControllerRegistry public controllerRegistry;
+  WalletPermissions public walletPermissions;
   MockERC20 public token;
-  // MockERC721 public nft;
   MockExternalContract public externalContract;
   IWallet public wallet; // This will be a clone
   
@@ -66,12 +67,16 @@ contract WalletTest is Test {
 
     // Deploy infrastructure
     controllerRegistry = new ControllerRegistry();
+    walletPermissions = new WalletPermissions(address(controllerRegistry));
     walletImplementation = new Wallet();
-    factory = new WalletFactory(address(walletImplementation), address(controllerRegistry));
+    factory = new WalletFactory(
+      address(walletImplementation),
+      address(controllerRegistry),
+      address(walletPermissions)
+    );
     
     // Deploy test tokens
     token = new MockERC20();
-    // nft = new MockERC721();
     externalContract = new MockExternalContract(address(token));
 
     // Register controller in registry
@@ -79,19 +84,20 @@ contract WalletTest is Test {
       controller1, 
       TOKEN_OPERATIONS, 
       "Token Operations", 
-      "1.0", 
       "Token operations permission"
     );
 
     // Setup initial balances
     vm.deal(address(user1), 100 ether);
     token.transfer(address(user1), 1000 * 10**token.decimals());
-    // nft.mint(address(wallet));
 
     // Deploy wallet clone for user1
     vm.startPrank(user1);
-    wallet = IWallet(factory.createWallet());
+    wallet = IWallet(payable(factory.createWallet()));
     vm.stopPrank();
+
+    // Grant permission to controller
+    walletPermissions.setPermission(address(wallet), controller1, TOKEN_OPERATIONS, true);
   }
 
   function testUserDepositNativeBERAToWallet() public {
@@ -181,7 +187,6 @@ contract WalletTest is Test {
     assertEq(token.balanceOf(address(wallet)), walletInitialBalance);
   }
 
-
   function testControllerOperations() public {
     uint256 userInitialBalance = token.balanceOf(address(user1));
     uint256 transferAmount = 100 * 10**token.decimals();
@@ -205,111 +210,17 @@ contract WalletTest is Test {
     assertEq(token.balanceOf(user1), userInitialBalance);
   }
 
-  // function testRevertUnauthorizedTokenOperation() public {
-  //     vm.startPrank(user2); // user2 has no permissions
-  //     bytes memory transferData = abi.encodeWithSelector(
-  //         IERC20.transfer.selector,
-  //         user2,
-  //         100 * 10**token.decimals()
-  //     );
-  //     wallet.controllerExecute(address(token), 0, transferData, TOKEN_OPERATIONS);
-  //     vm.stopPrank();
-  // }
+  function testRevertIfUnauthorizedController() public {
+    address unauthorizedController = makeAddr("unauthorizedController");
+    bytes memory transferData = abi.encodeWithSelector(
+      IERC20.transfer.selector,
+      user1,
+      100 * 10**token.decimals()
+    );
 
-  // function testERC20BalanceAndDeposit() public {
-  //     uint256 initialWalletBalance = token.balanceOf(address(wallet));
-  //     uint256 depositAmount = 100 * 10**token.decimals();
-      
-  //     // Transfer tokens to user1 first
-  //     bytes memory transferData = abi.encodeWithSelector(
-  //         IERC20.transfer.selector,
-  //         user1,
-  //         depositAmount
-  //     );
-  //     wallet.ownerExecute(address(token), 0, transferData);
-      
-  //     // User1 approves wallet to receive tokens
-  //     vm.startPrank(user1);
-  //     token.approve(address(wallet), depositAmount);
-      
-  //     // User1 deposits tokens into wallet
-  //     bytes memory depositData = abi.encodeWithSelector(
-  //         IERC20.transferFrom.selector,
-  //         user1,
-  //         address(wallet),
-  //         depositAmount
-  //     );
-  //     wallet.controllerExecute(address(token), depositAmount, depositData, TOKEN_OPERATIONS);
-  //     vm.stopPrank();
-      
-  //     // Verify wallet balance increased
-  //     assertEq(token.balanceOf(address(wallet)), initialWalletBalance);
-  // }
-
-  // function testERC20Withdrawal() public {
-  //     uint256 withdrawalAmount = 50 * 10**token.decimals();
-      
-  //     // Withdraw tokens using owner
-  //     bytes memory withdrawData = abi.encodeWithSelector(
-  //         IERC20.transfer.selector,
-  //         user1,
-  //         withdrawalAmount
-  //     );
-  //     wallet.ownerExecute(address(token), 0, withdrawData);
-      
-  //     // Verify user1 received tokens
-  //     assertEq(token.balanceOf(user1), withdrawalAmount);
-      
-  //     // Withdraw tokens using controller with permission
-  //     vm.startPrank(user1);
-  //     bytes memory withdrawData2 = abi.encodeWithSelector(
-  //         IERC20.transfer.selector,
-  //         user2,
-  //         withdrawalAmount
-  //     );
-  //     wallet.controllerExecute(address(token), withdrawalAmount, withdrawData2, TOKEN_OPERATIONS);
-  //     vm.stopPrank();
-      
-  //     // Verify user2 received tokens
-  //     assertEq(token.balanceOf(user2), withdrawalAmount);
-  // }
-
-  // function testERC20ExternalContractInteraction() public {
-  //     uint256 transferAmount = 75 * 10**token.decimals();
-      
-  //     // First approve external contract to receive tokens
-  //     bytes memory approveData = abi.encodeWithSelector(
-  //         IERC20.approve.selector,
-  //         address(externalContract),
-  //         transferAmount
-  //     );
-  //     wallet.ownerExecute(address(token), 0, approveData);
-      
-  //     // External contract receives tokens
-  //     bytes memory receiveData = abi.encodeWithSelector(
-  //         MockExternalContract.receiveTokens.selector,
-  //         transferAmount
-  //     );
-  //     wallet.ownerExecute(address(externalContract), 0, receiveData);
-      
-  //     // Verify external contract received tokens
-  //     assertEq(token.balanceOf(address(externalContract)), transferAmount);
-      
-  //     // Test external contract interaction with controller permission
-  //     vm.startPrank(user1);
-  //     // First approve again since previous approval was used
-  //     bytes memory approveData2 = abi.encodeWithSelector(
-  //         IERC20.approve.selector,
-  //         address(externalContract),
-  //         transferAmount
-  //     );
-  //     wallet.controllerExecute(address(token), transferAmount, approveData2, TOKEN_OPERATIONS);
-      
-  //     // External contract receives tokens again
-  //     wallet.controllerExecute(address(externalContract), transferAmount, receiveData, TOKEN_OPERATIONS);
-  //     vm.stopPrank();
-      
-  //     // Verify external contract received tokens twice
-  //     assertEq(token.balanceOf(address(externalContract)), transferAmount * 2);
-  // }
+    vm.startPrank(unauthorizedController);
+    vm.expectRevert("Permission denied");
+    wallet.controllerExecute(address(token), 0, transferData, TOKEN_OPERATIONS);
+    vm.stopPrank();
+  }
 }

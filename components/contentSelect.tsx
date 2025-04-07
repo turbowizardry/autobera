@@ -3,14 +3,14 @@
 import { useAccount } from 'wagmi';
 
 import Hero from './hero';
-import Onboarding from './onboarding';
+import Dashboard from './dashboard';
 
 export default function ContentSelect() {
   const { isConnected } = useAccount();
 
   return (
     <>
-      {isConnected ? <Onboarding /> : <Hero />}
+      {isConnected ? <Dashboard /> : <Hero />}
     </>
   )
 }

@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+
+import Link from 'next/link'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useAccount } from 'wagmi'
 
 const navigation = [
   // { name: 'Dashboard', href: '#' },
@@ -11,20 +14,20 @@ const navigation = [
 ]
 
 export default function Example() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { isConnected } = useAccount();
 
   return (
-    <header className="fixed top-0 left-0 right-0 backdrop-blur-md border-b border-gray-800 z-50">
-      <nav aria-label="Global" className="mx-auto flex items-center justify-between p-4 lg:px-8">
+    <header className="fixed top-0 left-0 right-0 h-16 backdrop-blur-md border-b border-gray-800 z-50">
+      <nav aria-label="Global" className="mx-auto h-full flex items-center justify-between px-4 lg:px-8">
         <div className="flex items-center gap-x-12">
-          <a href="#" className="-m-1.5 p-1.5">
+          <Link href={isConnected ? '/dashboard' : '/'} className="-m-1.5 p-1.5">
             <span className="sr-only">AutoBGT</span>
             <img
               alt=""
               src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
               className="h-8 w-auto"
             />
-          </a>
+          </Link>
           <div className="hidden lg:flex lg:gap-x-12">
             {navigation.map((item) => (
               <a key={item.name} href={item.href} className="text-sm/6 font-semibold text-gray-300">

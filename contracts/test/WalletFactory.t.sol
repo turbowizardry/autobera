@@ -4,6 +4,8 @@ pragma solidity ^0.8.28;
 import {Test, console, Vm} from "forge-std/Test.sol";
 import {WalletFactory} from "../src/WalletFactory.sol";
 import {Wallet} from "../src/Wallet.sol";
+import {ControllerRegistry} from "../src/ControllerRegistry.sol";
+import {WalletPermissions} from "../src/WalletPermissions.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IWallet {
@@ -13,6 +15,8 @@ interface IWallet {
 
 contract WalletFactoryTest is Test {
     WalletFactory public walletFactory;
+    ControllerRegistry public controllerRegistry;
+    WalletPermissions public walletPermissions;
     address public implementation;
     address public deployer;
     address public user;
@@ -23,9 +27,15 @@ contract WalletFactoryTest is Test {
         
         // Deploy the implementation contract first
         implementation = address(new Wallet());
+        controllerRegistry = new ControllerRegistry();
+        walletPermissions = new WalletPermissions(address(controllerRegistry));
         
         vm.startPrank(deployer);
-        walletFactory = new WalletFactory(implementation, address(this));
+        walletFactory = new WalletFactory(
+            implementation,
+            address(controllerRegistry),
+            address(walletPermissions)
+        );
         vm.stopPrank();
         
         assertEq(walletFactory.owner(), deployer);

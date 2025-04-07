@@ -8,7 +8,6 @@ contract ControllerRegistry is Ownable {
     address controller;
     string name;           // e.g., "Claim BGT"
     bytes32 permissionKey;  // e.g., "CLAIM_BGT"
-    string version;        // e.g., "v1.0.1"
     string description;
     bool isActive;
   }
@@ -16,7 +15,7 @@ contract ControllerRegistry is Ownable {
   // permissionKey => list of controllers
   mapping(bytes32 => ControllerInfo[]) public controllersByPermission;
 
-  event ControllerRegistered(address controller, bytes32 permissionKey, string version);
+  event ControllerRegistered(address controller, bytes32 permissionKey);
   event ControllerDeactivated(address controller, bytes32 permissionKey);
 
   constructor() Ownable(msg.sender) {}
@@ -25,7 +24,6 @@ contract ControllerRegistry is Ownable {
     address controller,
     bytes32 permissionKey,
     string calldata name,
-    string calldata version,
     string calldata description
   ) external onlyOwner {
     require(controller != address(0), "Invalid controller address");
@@ -36,12 +34,11 @@ contract ControllerRegistry is Ownable {
       controller: controller,
       name: name,
       permissionKey: permissionKey,
-      version: version,
       description: description,
       isActive: true
     }));
 
-    emit ControllerRegistered(controller, permissionKey, version);
+    emit ControllerRegistered(controller, permissionKey);
   }
 
   function deactivateController(bytes32 permissionKey, uint index) external onlyOwner {
