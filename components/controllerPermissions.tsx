@@ -110,7 +110,7 @@ export function ControllerPermissions() {
       <Card>
         <CardContent>
           <div className="text-center py-4">
-            <p className="text-muted-foreground">Please connect your wallet</p>
+            <p className="text-muted-foreground">Please create your wallet first</p>
           </div>
         </CardContent>
       </Card>

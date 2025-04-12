@@ -28,6 +28,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   
   const [walletAddress, setWalletAddress] = useState<string | undefined>(undefined);
   const [hasWallet, setHasWallet] = useState(false);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   const { data, refetch } = useReadContract({
     address: contracts?.walletFactory as `0x${string}`,
@@ -42,7 +43,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
-  const { vaults, isVaultsLoading } = useVaults(userAddress, chainId, walletAddress);
+  const { vaults, isVaultsLoading } = useVaults(userAddress, chainId, walletAddress, refetchTrigger);
 
   useEffect(() => {
     if (data) {
@@ -60,8 +61,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [chainId, userAddress, contracts?.walletFactory, refetch]);
 
+  const handleRefetch = () => {
+    setRefetchTrigger(prev => prev + 1);
+  };
+
   return (
-    <DataContext.Provider value={{ userAddress, walletAddress, hasWallet, contracts, vaults, isVaultsLoading, refetch }}>
+    <DataContext.Provider value={{ userAddress, walletAddress, hasWallet, contracts, vaults, isVaultsLoading, refetch: handleRefetch }}>
       {children}
     </DataContext.Provider>
   );

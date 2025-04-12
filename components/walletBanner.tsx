@@ -69,8 +69,13 @@ export function WalletBanner() {
           </CardDescription>
         </div>
         {!hasWallet ? (
-          <Button onClick={createWallet}>
-            Create Wallet
+          <Button 
+            onClick={createWallet}
+            disabled={isCreateWalletPending || isCreateWalletConfirming}
+          >
+            {isCreateWalletPending ? 'Creating...' : 
+             isCreateWalletConfirming ? 'Confirming...' : 
+             'Create Wallet'}
           </Button>
         ) : null}
       </CardContent>

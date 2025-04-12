@@ -15,7 +15,7 @@ interface Vault {
   isOperator?: boolean
 }
 
-export function useVaults(userAddress?: string, chainId?: number, walletAddress?: string) {
+export function useVaults(userAddress?: string, chainId?: number, walletAddress?: string, refetchTrigger?: any) {
   const [vaultBalances, setVaultBalances] = useState<Record<string, bigint | undefined>>({});
   const [vaultOperators, setVaultOperators] = useState<Record<string, boolean | undefined>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -59,9 +59,14 @@ export function useVaults(userAddress?: string, chainId?: number, walletAddress?
               address: vault.vaultAddress as `0x${string}`,
               abi: REWARD_VAULT_ABI,
               functionName: 'operator',
-              args: [walletAddress]
+              args: [userAddress]
             });
-            return { vaultAddress: vault.vaultAddress, isOperator: isOperator as boolean };
+            const isOperatorAddress = isOperator as `0x${string}` | undefined;
+            const isOperatorStatus = isOperatorAddress && 
+              isOperatorAddress !== '0x0000000000000000000000000000000000000000' && 
+              isOperatorAddress.toLowerCase() === walletAddress.toLowerCase();
+
+            return { vaultAddress: vault.vaultAddress, isOperator: isOperatorStatus as boolean };
           } catch (error) {
             console.error(`Error fetching operator status for vault ${vault.vaultAddress}:`, error);
             return { vaultAddress: vault.vaultAddress, isOperator: false };
@@ -95,7 +100,7 @@ export function useVaults(userAddress?: string, chainId?: number, walletAddress?
     };
 
     fetchBalances();
-  }, [userAddress, walletAddress, chainId, vaults, publicClient]);
+  }, [userAddress, walletAddress, chainId, vaults, publicClient, refetchTrigger]);
 
   const vaultsWithBalances = useMemo(() => {
     return vaults.map((vault) => ({

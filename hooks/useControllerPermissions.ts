@@ -58,6 +58,10 @@ export function useControllerPermissions(
           }) as ControllerInfo[]
 
           // For each controller, fetch its permission status
+          if(!controllers) {
+            return { permissionKey: permissionKey.hash, controllers: [] }
+          }
+          
           const controllersWithPermissions = await Promise.all(
             controllers.map(async (controller) => {
               try {

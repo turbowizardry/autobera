@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useData } from '@/contexts/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
@@ -14,6 +14,7 @@ import REWARD_VAULT_ABI from '@/abi/berachain/RewardVault.json';
 
 export function LpTokens() {
   const { userAddress, walletAddress, vaults, isVaultsLoading, refetch: refetchVaults, hasWallet } = useData();
+  const hasRefreshedRef = useRef(false);
   
   const { 
     writeContract,
@@ -23,14 +24,23 @@ export function LpTokens() {
 
   const { 
     isLoading: isSetOperatorConfirming,
-    isSuccess: isSetOperatorConfirmed 
+    isSuccess: isSetOperatorConfirmed,
+    data: receipt
   } = useWaitForTransactionReceipt({ hash: setOperatorHash });
 
   useEffect(() => {
-    if (isSetOperatorConfirmed) {
+    if (isSetOperatorConfirmed && !hasRefreshedRef.current) {
+      hasRefreshedRef.current = true;
       refetchVaults();
     }
   }, [isSetOperatorConfirmed, refetchVaults]);
+
+  // Reset the ref when a new transaction starts
+  useEffect(() => {
+    if (setOperatorHash) {
+      hasRefreshedRef.current = false;
+    }
+  }, [setOperatorHash]);
 
   // Filter vaults that have a balance
   const vaultsWithBalance = useMemo(() => 
@@ -44,18 +54,19 @@ export function LpTokens() {
     [vaultsWithBalance]
   );
 
-  const handleSetOperator = async (vaultAddress: string) => {
+  const handleSetOperator = async (vaultAddress: string, operatorAddress: string | null) => {
     if (!hasWallet) {
       console.error("Wallet address not found");
       return;
     }
     try {
-      await writeContract({
+      const hash = await writeContract({
         address: vaultAddress as `0x${string}`,
         abi: REWARD_VAULT_ABI,
         functionName: 'setOperator',
-        args: [walletAddress],
+        args: [operatorAddress || '0x0000000000000000000000000000000000000000'],
       });
+      console.log('Operator transaction sent:', hash);
     } catch (error) {
       console.error("Error setting operator:", error);
     }
@@ -129,6 +140,14 @@ export function LpTokens() {
                 <span className="text-sm text-muted-foreground">
                   Operator
                 </span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleSetOperator(vault.vaultAddress, null)}
+                  disabled={isSetOperatorPending || isSetOperatorConfirming}
+                >
+                  {isSetOperatorPending || isSetOperatorConfirming ? 'Removing...' : 'Remove Operator'}
+                </Button>
               </>
             )}
             
@@ -136,8 +155,8 @@ export function LpTokens() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => handleSetOperator(vault.vaultAddress)}
-                disabled={isSetOperatorPending || isSetOperatorConfirming}
+                onClick={() => walletAddress && handleSetOperator(vault.vaultAddress, walletAddress)}
+                disabled={isSetOperatorPending || isSetOperatorConfirming || !walletAddress}
               >
                 {isSetOperatorPending || isSetOperatorConfirming ? 'Setting Operator...' : 'Set Operator'}
               </Button>
