@@ -13,7 +13,7 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import REWARD_VAULT_ABI from '@/abi/berachain/RewardVault.json';
 
 export function LpTokens() {
-  const { userAddress, walletAddress, vaults, isVaultsLoading, refetch: refetchVaults } = useData();
+  const { userAddress, walletAddress, vaults, isVaultsLoading, refetch: refetchVaults, hasWallet } = useData();
   
   const { 
     writeContract,
@@ -45,6 +45,10 @@ export function LpTokens() {
   );
 
   const handleSetOperator = async (vaultAddress: string) => {
+    if (!hasWallet) {
+      console.error("Wallet address not found");
+      return;
+    }
     try {
       await writeContract({
         address: vaultAddress as `0x${string}`,
@@ -97,6 +101,7 @@ export function LpTokens() {
   return (
     <Card>
       <CardContent>
+      <h3 className="text-lg font-semibold mb-4">BGT Rewards</h3>
       {vaultsWithBalance.map((vault) => (
         <div 
           key={vault.vaultAddress}
@@ -113,7 +118,7 @@ export function LpTokens() {
            <div>
               <h3 className="font-medium">{vault.name}</h3>
               <p className="text-sm text-muted-foreground">
-                {parseFloat(formatUnits(vault.balance!, 18)).toFixed(8)} LP tokens
+                {parseFloat(formatUnits(vault.balance!, 18)).toFixed(8)} BGT
               </p>
             </div>
           </div>
@@ -127,7 +132,7 @@ export function LpTokens() {
               </>
             )}
             
-            {!vault.isOperator && (
+            {(!vault.isOperator && hasWallet) && (
               <Button 
                 variant="outline" 
                 size="sm"

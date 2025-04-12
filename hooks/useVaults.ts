@@ -40,7 +40,7 @@ export function useVaults(userAddress?: string, chainId?: number, walletAddress?
             const balance = await publicClient.readContract({
               address: vault.vaultAddress as `0x${string}`,
               abi: REWARD_VAULT_ABI,
-              functionName: 'balanceOf',
+              functionName: 'earned',
               args: [userAddress]
             });
             return { vaultAddress: vault.vaultAddress, balance: balance as bigint };
@@ -95,7 +95,7 @@ export function useVaults(userAddress?: string, chainId?: number, walletAddress?
     };
 
     fetchBalances();
-  }, [userAddress, chainId, vaults, publicClient]);
+  }, [userAddress, walletAddress, chainId, vaults, publicClient]);
 
   const vaultsWithBalances = useMemo(() => {
     return vaults.map((vault) => ({

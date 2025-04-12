@@ -15,17 +15,21 @@ contract WalletPermissions {
 
     // wallet => permissionKey => controller => Permission
     mapping(address => mapping(bytes32 => mapping(address => Permission))) public permissions;
-    
-    // wallet => all approved permissions
-    mapping(address => Permission[]) public walletPermissions;
 
     IControllerRegistry public immutable controllerRegistry;
 
-    event PermissionUpdated(
+    event PermissionApproved(
         address indexed wallet,
         address indexed controller,
         bytes32 indexed permissionKey,
-        bool isApproved
+        uint256 approvedAt
+    );
+
+    event PermissionRevoked(
+        address indexed wallet,
+        address indexed controller,
+        bytes32 indexed permissionKey,
+        uint256 revokedAt
     );
 
     constructor(address _controllerRegistry) {
@@ -38,34 +42,39 @@ contract WalletPermissions {
         _;
     }
 
-    function setPermission(
+    function approvePermission(
         address wallet,
         address controller,
-        bytes32 permissionKey,
-        bool approved
+        bytes32 permissionKey
     ) external onlyWalletOwner(wallet) {
         // Verify controller is registered and active
         require(controllerRegistry.hasPermission(controller, permissionKey), "Invalid controller");
 
         Permission storage perm = permissions[wallet][permissionKey][controller];
         
-        // If permission doesn't exist, add it to the wallet's permission list
+        // If permission doesn't exist, create it
         if (perm.controller == address(0)) {
             perm.controller = controller;
             perm.permissionKey = permissionKey;
-            if (approved) {
-                walletPermissions[wallet].push(perm);
-            }
         }
 
-        perm.isApproved = approved;
-        perm.approvedAt = approved ? block.timestamp : 0;
-
-        emit PermissionUpdated(wallet, controller, permissionKey, approved);
+        perm.isApproved = true;
+        perm.approvedAt = block.timestamp;
+        emit PermissionApproved(wallet, controller, permissionKey, block.timestamp);
     }
 
-    function getWalletPermissions(address wallet) external view returns (Permission[] memory) {
-        return walletPermissions[wallet];
+    function revokePermission(
+        address wallet,
+        address controller,
+        bytes32 permissionKey
+    ) external onlyWalletOwner(wallet) {
+        Permission storage perm = permissions[wallet][permissionKey][controller];
+        require(perm.controller != address(0), "Permission does not exist");
+        require(perm.isApproved, "Permission already revoked");
+
+        perm.isApproved = false;
+        perm.approvedAt = 0;
+        emit PermissionRevoked(wallet, controller, permissionKey, block.timestamp);
     }
 
     function hasPermission(

@@ -94,6 +94,15 @@ if [ $? -eq 0 ]; then
        "$CONTRACTS_JSON" > tmp.json && mv tmp.json "$CONTRACTS_JSON"
     
     echo "Updated contracts.json with new deployment addresses"
+
+    # Copy ABIs to the frontend
+    echo "Copying ABIs to frontend..."
+    cp out/ControllerRegistry.sol/ControllerRegistry.json ../abi/
+    cp out/WalletPermissions.sol/WalletPermissions.json ../abi/
+    cp out/Wallet.sol/Wallet.json ../abi/
+    cp out/WalletFactory.sol/WalletFactory.json ../abi/
+    cp out/controllers/ClaimBGTController.sol/ClaimBGTController.json ../abi/
+    echo "ABIs copied successfully!"
 else
     echo "Deployment failed!"
     exit 1

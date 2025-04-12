@@ -1,5 +1,6 @@
 import { WalletBanner } from '@/components/walletBanner'
 import { LpTokens } from '@/components/lpTokens'
+import { ControllerPermissions } from '@/components/controllerPermissions'
 
 export default function Page() {
   return (
@@ -10,6 +11,7 @@ export default function Page() {
 
       <WalletBanner />
       <LpTokens />
+      <ControllerPermissions />
     </>
   )
 }

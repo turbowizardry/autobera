@@ -27,20 +27,20 @@
     "testnet": {
       "contracts": {
         "ControllerRegistry": {
-          "address": "0xABfaf88C613E6730D1F5568B8D72b74c65fDb020"
+          "address": "0x341Cc9D5A4c504cE8E92A6260DC9e3cF586B27f4"
         },
         "WalletPermissions": {
-          "address": "0x48bA5503030B47D9cdc36e618908551aE81b22f0"
+          "address": "0x0eDd13683e642F8ec1b03672681A789c2a676Ccc"
         },
         "Wallet": {
-          "address": "0xd175d894f5335c12812eb9aBC91F0389144647F8"
+          "address": "0xCE29a0d3D93d50F6Dc5a9a96FD56dc2B2366FC2a"
         },
         "WalletFactory": {
-          "address": "0xE51aa25B67e7174bbC422BE1040aDBB54a364605"
+          "address": "0xe5a8299C3908A89d464C5683560a5393758a6F17"
         },
         "controllers": {
           "ClaimBGTController": {
-            "address": "0x821FC59D886A5F6814A744dF7167F49E107527ad"
+            "address": "0x4910804dcEB3251EAc658353e72c0A4050223390"
           }
         }
       }

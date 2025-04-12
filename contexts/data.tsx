@@ -31,7 +31,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const { data, refetch } = useReadContract({
     address: contracts?.walletFactory as `0x${string}`,
-    abi: WALLET_FACTORY_ABI,
+    abi: WALLET_FACTORY_ABI.abi,
     functionName: 'getWalletByOwner',
     args: [userAddress!],
     query: {

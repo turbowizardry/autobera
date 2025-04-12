@@ -48,7 +48,7 @@ export function WalletBanner() {
       
       writeCreateWallet({
         address: contracts.walletFactory as `0x${string}`,
-        abi: WALLET_FACTORY_ABI,
+        abi: WALLET_FACTORY_ABI.abi,
         functionName: 'createWallet',
         args: []
       });
