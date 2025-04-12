@@ -1,8 +1,9 @@
 'use client';
-import { useEffect } from 'react';
 
-import { useWalletStatus } from '@/hooks/wallet';
+import { useEffect } from 'react';
+import { useData } from '@/contexts/data';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatUnits } from 'viem';
@@ -17,13 +18,8 @@ import {
   CircleCheck,
 } from 'lucide-react';
 
-const walletFactoryAddress = '0xE3F95aD9EF9F645dD876598745A28c081EBB3D49';
-const rewardVaultAddress = '0x9C84a17467d0F691b4a6FE6c64fA00eDb55D9646';
-
-
-export default function WalletBanner() {
-  const { address: userAddress } = useAccount();
-  const { walletAddress, hasWallet, refetch: refetchWalletStatus } = useWalletStatus();
+export function WalletBanner() {
+  const { userAddress, walletAddress, hasWallet, refetch: refetchWalletStatus, contracts } = useData();
   
   // Step 1: Create Wallet
   const { 
@@ -45,35 +41,39 @@ export default function WalletBanner() {
 
   const createWallet = async () => {
     try {
+      if (!contracts?.walletFactory) {
+        console.error("Wallet factory address not found");
+        return;
+      }
+      
       writeCreateWallet({
-        address: walletFactoryAddress,
+        address: contracts.walletFactory as `0x${string}`,
         abi: WALLET_FACTORY_ABI,
         functionName: 'createWallet',
-      })
+        args: []
+      });
     } catch (error) {
       console.error("Error creating wallet:", error);
     }
   };
 
   return (
-    <div>
-      <Card>
-        <CardContent className="flex flex-row gap-4 justify-between">
-          <div className="space-y-2">
-            <CardTitle>
-              {hasWallet ? 'Your wallet' : 'Create your wallet'}
-            </CardTitle>
-            <CardDescription>
-              {hasWallet ? `Wallet address: ${walletAddress}` : 'Make sure your connected wallet is the wallet holding your LP tokens.'}
-            </CardDescription>
-          </div>
-          {!hasWallet ? (
-            <Button onClick={createWallet}>
-              Create Wallet
-            </Button>
-          ) : null}
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardContent className="flex flex-row gap-4 justify-between items-center">
+        <div className="space-y-2">
+          <CardTitle>
+            {hasWallet ? 'Your wallet' : 'Create your wallet'}
+          </CardTitle>
+          <CardDescription>
+            {hasWallet ? `Wallet address: ${walletAddress}` : 'Make sure your connected wallet is the wallet holding your LP tokens.'}
+          </CardDescription>
+        </div>
+        {!hasWallet ? (
+          <Button onClick={createWallet}>
+            Create Wallet
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }

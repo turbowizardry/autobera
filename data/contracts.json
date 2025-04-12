@@ -1,0 +1,49 @@
+{
+  "networks": {
+    "berachain": {
+      "contracts": {
+        "ControllerRegistry": {
+          "address": "0x078d2439B8F138583ca5D013451ce47b6846e7e6"
+        },
+        "WalletPermissions": {
+          "address": "0x30Eb43d4c2b8B44aF50E65af60A9E6C637CaCeAa"
+        },
+        "WalletFactory": {
+          "address": "0x7957A103Eb5F2375B1B7397c701a6c32aB25D8a7"
+        },
+        "Wallet": {
+          "address": "0xa9bD2aA642f0C380d4f02057cCB5c58B227eC615"
+        },
+        "RewardVaultFactory": {
+          "address": "0x94Ad6Ac84f6C6FbA8b8CCbD71d9f4f101def52a8"
+        },
+        "controllers": {
+          "ClaimBGTController": {
+            "address": "0x9eEfA320204974cD8530D6615a9a0103bfcaB618"
+          }
+        }
+      }
+    },
+    "testnet": {
+      "contracts": {
+        "ControllerRegistry": {
+          "address": "0xABfaf88C613E6730D1F5568B8D72b74c65fDb020"
+        },
+        "WalletPermissions": {
+          "address": "0x48bA5503030B47D9cdc36e618908551aE81b22f0"
+        },
+        "Wallet": {
+          "address": "0xd175d894f5335c12812eb9aBC91F0389144647F8"
+        },
+        "WalletFactory": {
+          "address": "0xE51aa25B67e7174bbC422BE1040aDBB54a364605"
+        },
+        "controllers": {
+          "ClaimBGTController": {
+            "address": "0x821FC59D886A5F6814A744dF7167F49E107527ad"
+          }
+        }
+      }
+    }
+  }
+}

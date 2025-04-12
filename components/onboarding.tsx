@@ -1,7 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 
-import { useWalletStatus } from '@/hooks/wallet';
+import { useWalletStatus } from '@/hooks/useWallet';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import { formatUnits } from 'viem';

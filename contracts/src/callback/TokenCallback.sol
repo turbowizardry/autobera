@@ -36,7 +36,7 @@ abstract contract TokenCallbackHandler is IERC721Receiver, IERC1155Receiver {
     return IERC1155Receiver.onERC1155BatchReceived.selector;
   }
 
-  function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
     return
       interfaceId == type(IERC721Receiver).interfaceId ||
       interfaceId == type(IERC1155Receiver).interfaceId ||

@@ -1,0 +1,14 @@
+{
+  "vaults": [
+    {
+      "stakingTokenAddress": "0xe48463c7c26287133d86485985f71f8f52d5dd9c",
+      "vaultAddress": "0x9c84a17467d0f691b4a6fe6c64fa00edb55d9646",
+      "name": "WBERA | HONEY",
+      "protocol": "HUB",
+      "logoURI": "https://res.cloudinary.com/duv0g402y/image/upload/c_thumb,w_200,g_face/v1738733618/reward-vaults/icons/cmiqewcekww0ckhqoe9d.png",
+      "url": "https://hub.berachain.com/pools/0xdd70a5ef7d8cfe5c5134b5f9874b09fb5ce812b4000200000000000000000003/details/",
+      "description": "Acquired by depositing liquidity into the WBERA | HONEY Pool on Hub",
+      "owner": "Foundation"
+    }
+  ]
+} 

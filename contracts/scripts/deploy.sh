@@ -59,13 +59,45 @@ if [ "$VERIFY" = true ]; then
     FORGE_CMD="$FORGE_CMD --verify"
 fi
 
-# Execute the command
-eval $FORGE_CMD
+# Create a temporary file to store the deployment output
+TEMP_OUTPUT=$(mktemp)
+
+# Execute the command and capture output
+eval $FORGE_CMD | tee $TEMP_OUTPUT
 
 # Check if deployment was successful
 if [ $? -eq 0 ]; then
     echo "Deployment completed successfully!"
+    
+    # Extract contract addresses from the output
+    CONTROLLER_REGISTRY=$(grep "ControllerRegistry deployed at:" $TEMP_OUTPUT | awk '{print $NF}')
+    WALLET_PERMISSIONS=$(grep "WalletPermissions deployed at:" $TEMP_OUTPUT | awk '{print $NF}')
+    WALLET_IMPL=$(grep "Wallet implementation deployed at:" $TEMP_OUTPUT | awk '{print $NF}')
+    WALLET_FACTORY=$(grep "WalletFactory deployed at:" $TEMP_OUTPUT | awk '{print $NF}')
+    CLAIM_BGT_CONTROLLER=$(grep "ClaimBGTController deployed at:" $TEMP_OUTPUT | awk '{print $NF}')
+    
+    # Path to the contracts.json file
+    CONTRACTS_JSON="../data/contracts.json"
+    
+    # Update the contracts.json file
+    jq --arg network "$NETWORK" \
+       --arg controller_registry "$CONTROLLER_REGISTRY" \
+       --arg wallet_permissions "$WALLET_PERMISSIONS" \
+       --arg wallet_impl "$WALLET_IMPL" \
+       --arg wallet_factory "$WALLET_FACTORY" \
+       --arg claim_bgt_controller "$CLAIM_BGT_CONTROLLER" \
+       '.networks[$network].contracts.ControllerRegistry.address = $controller_registry |
+        .networks[$network].contracts.WalletPermissions.address = $wallet_permissions |
+        .networks[$network].contracts.Wallet.address = $wallet_impl |
+        .networks[$network].contracts.WalletFactory.address = $wallet_factory |
+        .networks[$network].contracts.controllers.ClaimBGTController.address = $claim_bgt_controller' \
+       "$CONTRACTS_JSON" > tmp.json && mv tmp.json "$CONTRACTS_JSON"
+    
+    echo "Updated contracts.json with new deployment addresses"
 else
     echo "Deployment failed!"
     exit 1
-fi 
+fi
+
+# Clean up
+rm $TEMP_OUTPUT 

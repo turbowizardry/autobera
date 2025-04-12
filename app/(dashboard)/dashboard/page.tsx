@@ -1,4 +1,5 @@
-import WalletBanner from '@/components/walletBanner';
+import { WalletBanner } from '@/components/walletBanner'
+import { LpTokens } from '@/components/lpTokens'
 
 export default function Page() {
   return (
@@ -8,6 +9,7 @@ export default function Page() {
       </h1>
 
       <WalletBanner />
+      <LpTokens />
     </>
   )
 }
