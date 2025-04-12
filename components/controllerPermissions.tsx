@@ -132,7 +132,12 @@ export function ControllerPermissions() {
   return (
     <Card>
       <CardContent>
-        <h3 className="text-lg font-semibold mb-4">Wallet Permissions</h3>
+      <div className="space-y-1 mb-4 max-w-xl">
+        <h3 className="text-lg font-semibold">Wallet Permissions</h3>
+        <p className="text-sm text-muted-foreground">
+          Approve or revoke permissions for the automation controllers to interact with your BGT wallet.
+        </p>
+      </div>
         <div className="space-y-4">
           {Object.entries(controllersByPermission).map(([permissionKey, controllers]) => (
             <div key={permissionKey}>

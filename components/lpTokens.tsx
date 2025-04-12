@@ -112,7 +112,12 @@ export function LpTokens() {
   return (
     <Card>
       <CardContent>
-      <h3 className="text-lg font-semibold mb-4">BGT Rewards</h3>
+      <div className="space-y-1 mb-4 max-w-xl">
+        <h3 className="text-lg font-semibold">BGT Claims</h3>
+        <p className="text-sm text-muted-foreground">
+          Allow your BGT wallet to claim your rewards from the following LP token positions. This uses the Berachain `operator` permission to allow claiming from another address.
+        </p>
+      </div>
       {vaultsWithBalance.map((vault) => (
         <div 
           key={vault.vaultAddress}
@@ -146,7 +151,7 @@ export function LpTokens() {
                   onClick={() => handleSetOperator(vault.vaultAddress, null)}
                   disabled={isSetOperatorPending || isSetOperatorConfirming}
                 >
-                  {isSetOperatorPending || isSetOperatorConfirming ? 'Removing...' : 'Remove Operator'}
+                  {isSetOperatorPending || isSetOperatorConfirming ? 'Revoking...' : 'Revoke'}
                 </Button>
               </>
             )}
@@ -158,7 +163,7 @@ export function LpTokens() {
                 onClick={() => walletAddress && handleSetOperator(vault.vaultAddress, walletAddress)}
                 disabled={isSetOperatorPending || isSetOperatorConfirming || !walletAddress}
               >
-                {isSetOperatorPending || isSetOperatorConfirming ? 'Setting Operator...' : 'Set Operator'}
+                {isSetOperatorPending || isSetOperatorConfirming ? 'Allowing...' : 'Allow'}
               </Button>
             )}
           </div>
