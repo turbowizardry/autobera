@@ -1,13 +1,37 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useData } from '@/contexts/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import Image from 'next/image';
+import { Card } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
+import { formatUnits } from 'viem';
+import { CircleX } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import REWARD_VAULT_ABI from '@/abi/berachain/RewardVault.json';
 
 export function LpTokens() {
-  const { userAddress,walletAddress, vaults, isVaultsLoading } = useData();
-
+  const { userAddress, walletAddress, vaults, isVaultsLoading, refetch: refetchVaults } = useData();
   
+  const { 
+    writeContract,
+    data: setOperatorHash,
+    isPending: isSetOperatorPending 
+  } = useWriteContract();
+
+  const { 
+    isLoading: isSetOperatorConfirming,
+    isSuccess: isSetOperatorConfirmed 
+  } = useWaitForTransactionReceipt({ hash: setOperatorHash });
+
+  useEffect(() => {
+    if (isSetOperatorConfirmed) {
+      refetchVaults();
+    }
+  }, [isSetOperatorConfirmed, refetchVaults]);
+
   // Filter vaults that have a balance
   const vaultsWithBalance = useMemo(() => 
     vaults.filter(vault => (vault.balance || BigInt(0)) > BigInt(0)),
@@ -20,33 +44,59 @@ export function LpTokens() {
     [vaultsWithBalance]
   );
 
+  const handleSetOperator = async (vaultAddress: string) => {
+    try {
+      await writeContract({
+        address: vaultAddress as `0x${string}`,
+        abi: REWARD_VAULT_ABI,
+        functionName: 'setOperator',
+        args: [walletAddress],
+      });
+    } catch (error) {
+      console.error("Error setting operator:", error);
+    }
+  };
+
   if (isVaultsLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-[200px]" />
-        <Skeleton className="h-4 w-[100px]" />
-      </div>
+      <Card>
+        <CardContent>
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-[200px]" />
+            <Skeleton className="h-4 w-[100px]" />
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   if (!userAddress) {
     return (
-      <div className="text-center py-4">
-        <p className="text-muted-foreground">Please connect your wallet</p>
-      </div>
+      <Card>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">Please connect your wallet</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   if (vaultsWithBalance.length === 0) {
     return (
-      <div className="text-center py-4">
-        <p className="text-muted-foreground">No active LP token positions found</p>
-      </div>
+      <Card>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">No active LP token positions found</p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <Card>
+      <CardContent>
       {vaultsWithBalance.map((vault) => (
         <div 
           key={vault.vaultAddress}
@@ -60,19 +110,37 @@ export function LpTokens() {
               height={32}
               className="rounded-full"
             />
-            <div>
+           <div>
               <h3 className="font-medium">{vault.name}</h3>
-              <p className="text-sm text-muted-foreground">{vault.protocol}</p>
+              <p className="text-sm text-muted-foreground">
+                {parseFloat(formatUnits(vault.balance!, 18)).toFixed(8)} LP tokens
+              </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="font-medium">{vault.balance?.toString()}</p>
+          <div className="flex items-center space-x-2">
             {vault.isOperator && (
-              <p className="text-sm text-green-500">Operator</p>
+              <>
+                <CircleCheck className="h-5 w-5 text-green-600" />
+                <span className="text-sm text-muted-foreground">
+                  Operator
+                </span>
+              </>
+            )}
+            
+            {!vault.isOperator && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleSetOperator(vault.vaultAddress)}
+                disabled={isSetOperatorPending || isSetOperatorConfirming}
+              >
+                {isSetOperatorPending || isSetOperatorConfirming ? 'Setting Operator...' : 'Set Operator'}
+              </Button>
             )}
           </div>
         </div>
       ))}
-    </div>
+      </CardContent>
+    </Card>
   );
 }

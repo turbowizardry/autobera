@@ -42,7 +42,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
-  const { vaults, isVaultsLoading } = useVaults(userAddress, chainId);
+  const { vaults, isVaultsLoading } = useVaults(userAddress, chainId, walletAddress);
 
   useEffect(() => {
     if (data) {

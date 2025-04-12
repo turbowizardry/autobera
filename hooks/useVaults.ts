@@ -15,8 +15,9 @@ interface Vault {
   isOperator?: boolean
 }
 
-export function useVaults(userAddress?: string, chainId?: number) {
+export function useVaults(userAddress?: string, chainId?: number, walletAddress?: string) {
   const [vaultBalances, setVaultBalances] = useState<Record<string, bigint | undefined>>({});
+  const [vaultOperators, setVaultOperators] = useState<Record<string, boolean | undefined>>({});
   const [isLoading, setIsLoading] = useState(false);
   const publicClient = usePublicClient();
 
@@ -28,6 +29,7 @@ export function useVaults(userAddress?: string, chainId?: number) {
     const fetchBalances = async () => {
       if (!userAddress || !chainId || vaults.length === 0 || !publicClient) {
         setVaultBalances({});
+        setVaultOperators({});
         return;
       }
 
@@ -48,16 +50,45 @@ export function useVaults(userAddress?: string, chainId?: number) {
           }
         });
 
-        const results = await Promise.all(balancePromises);
-        const newBalances = results.reduce((acc, { vaultAddress, balance }) => {
+        const operatorPromises = vaults.map(async (vault) => {
+          if (!walletAddress) {
+            return { vaultAddress: vault.vaultAddress, isOperator: false };
+          }
+          try {
+            const isOperator = await publicClient.readContract({
+              address: vault.vaultAddress as `0x${string}`,
+              abi: REWARD_VAULT_ABI,
+              functionName: 'operator',
+              args: [walletAddress]
+            });
+            return { vaultAddress: vault.vaultAddress, isOperator: isOperator as boolean };
+          } catch (error) {
+            console.error(`Error fetching operator status for vault ${vault.vaultAddress}:`, error);
+            return { vaultAddress: vault.vaultAddress, isOperator: false };
+          }
+        });
+
+        const [balanceResults, operatorResults] = await Promise.all([
+          Promise.all(balancePromises),
+          Promise.all(operatorPromises)
+        ]);
+
+        const newBalances = balanceResults.reduce((acc, { vaultAddress, balance }) => {
           acc[vaultAddress] = balance;
           return acc;
         }, {} as Record<string, bigint | undefined>);
 
+        const newOperators = operatorResults.reduce((acc, { vaultAddress, isOperator }) => {
+          acc[vaultAddress] = isOperator;
+          return acc;
+        }, {} as Record<string, boolean | undefined>);
+
         setVaultBalances(newBalances);
+        setVaultOperators(newOperators);
       } catch (error) {
-        console.error('Error fetching vault balances:', error);
+        console.error('Error fetching vault data:', error);
         setVaultBalances({});
+        setVaultOperators({});
       } finally {
         setIsLoading(false);
       }
@@ -69,12 +100,13 @@ export function useVaults(userAddress?: string, chainId?: number) {
   const vaultsWithBalances = useMemo(() => {
     return vaults.map((vault) => ({
       ...vault,
-      balance: vaultBalances[vault.vaultAddress]
+      balance: vaultBalances[vault.vaultAddress],
+      isOperator: vaultOperators[vault.vaultAddress]
     }));
-  }, [vaults, vaultBalances]);
+  }, [vaults, vaultBalances, vaultOperators]);
 
   return {
     vaults: vaultsWithBalances,
-    isVaultsLoading: isLoading || vaultsWithBalances.some(vault => vault.balance === undefined)
+    isVaultsLoading: isLoading || vaultsWithBalances.some(vault => vault.balance === undefined || vault.isOperator === undefined)
   }
 } 
