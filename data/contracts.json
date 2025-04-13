@@ -1,6 +1,6 @@
 {
   "networks": {
-    "berachain": {
+    "mainnet": {
       "contracts": {
         "ControllerRegistry": {
           "address": "0x078d2439B8F138583ca5D013451ce47b6846e7e6"
@@ -27,20 +27,20 @@
     "testnet": {
       "contracts": {
         "ControllerRegistry": {
-          "address": "0x341Cc9D5A4c504cE8E92A6260DC9e3cF586B27f4"
+          "address": "0x77f9d9168ecFC9459F4234e45fE9c68d4339e50A"
         },
         "WalletPermissions": {
-          "address": "0x0eDd13683e642F8ec1b03672681A789c2a676Ccc"
+          "address": "0xa9cd8afd61Ac5AE9F8c0909d50f8BD482180Ed75"
         },
         "Wallet": {
-          "address": "0xCE29a0d3D93d50F6Dc5a9a96FD56dc2B2366FC2a"
+          "address": "0x369F1a5029a6eD3Cd2852D26e3c412AB336De1Ef"
         },
         "WalletFactory": {
-          "address": "0xe5a8299C3908A89d464C5683560a5393758a6F17"
+          "address": "0xB59165728E89bc82923533591CdbA158d130827b"
         },
         "controllers": {
           "ClaimBGTController": {
-            "address": "0x4910804dcEB3251EAc658353e72c0A4050223390"
+            "address": "0x91030068389B7B536916819f2F7E2a8DF5cd732F"
           }
         }
       }

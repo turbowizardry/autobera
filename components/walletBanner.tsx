@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export function WalletBanner() {
-  const { userAddress, walletAddress, hasWallet, refetch: refetchWalletStatus, contracts } = useData();
+  const { userAddress, walletAddress, hasWallet, refetch: refetchWalletStatus, contracts, bgtBalance } = useData();
   
   // Step 1: Create Wallet
   const { 
@@ -65,7 +65,13 @@ export function WalletBanner() {
             {hasWallet ? 'Your wallet' : 'Create your wallet'}
           </CardTitle>
           <CardDescription>
-            {hasWallet ? `Wallet address: ${walletAddress}` : 'Make sure your connected wallet is the wallet holding your LP tokens.'}
+            {hasWallet ? (
+              <div className="space-y-1">
+                <div>Wallet address: {walletAddress}</div>
+              </div>
+            ) : (
+              'Make sure your connected wallet is the wallet holding your LP tokens.'
+            )}
           </CardDescription>
         </div>
         {!hasWallet ? (
@@ -78,6 +84,9 @@ export function WalletBanner() {
              'Create Wallet'}
           </Button>
         ) : null}
+          {hasWallet && (
+            <div>{bgtBalance ? Number(formatUnits(bgtBalance, 18)).toFixed(8) : '0'} BGT</div>
+          )}
       </CardContent>
     </Card>
   );

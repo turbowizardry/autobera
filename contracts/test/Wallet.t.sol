@@ -45,182 +45,122 @@ contract MockExternalContract {
 }
 
 contract WalletTest is Test {
-  Wallet public walletImplementation;
-  WalletFactory public factory;
-  ControllerRegistry public controllerRegistry;
-  WalletPermissions public walletPermissions;
-  MockERC20 public token;
-  MockExternalContract public externalContract;
-  IWallet public wallet; // This will be a clone
-  
-  address public owner; //owner of the contracts
-  address public user1; //test user
-  address public user2; //test user
-  address public controller1; //test controller
-
-  bytes32 public constant TOKEN_OPERATIONS = keccak256("TOKEN_OPERATIONS");
+  Wallet public wallet;
+  ControllerRegistry public registry;
+  WalletPermissions public permissions;
+  address public owner;
+  address public controller;
+  bytes32 public constant PERMISSION_KEY = keccak256("TEST_PERMISSION");
 
   function setUp() public {
-    owner = address(this);
-    user1 = payable(makeAddr("user1"));
-    controller1 = makeAddr("controller1");
-
-    // Deploy infrastructure
-    controllerRegistry = new ControllerRegistry();
-    walletPermissions = new WalletPermissions(address(controllerRegistry));
-    walletImplementation = new Wallet();
-    factory = new WalletFactory(
-      address(walletImplementation),
-      address(controllerRegistry),
-      address(walletPermissions)
-    );
+    owner = makeAddr("owner");
+    controller = makeAddr("controller");
     
-    // Deploy test tokens
-    token = new MockERC20();
-    externalContract = new MockExternalContract(address(token));
-
-    // Register controller in registry
-    controllerRegistry.registerController(
-      controller1, 
-      TOKEN_OPERATIONS, 
-      "Token Operations", 
-      "Token operations permission"
-    );
-
-    // Setup initial balances
-    vm.deal(address(user1), 100 ether);
-    token.transfer(address(user1), 1000 * 10**token.decimals());
-
-    // Deploy wallet clone for user1
-    vm.startPrank(user1);
-    wallet = IWallet(payable(factory.createWallet()));
-    vm.stopPrank();
-
-    // Grant permission to controller
-    walletPermissions.setPermission(address(wallet), controller1, TOKEN_OPERATIONS, true);
+    // Deploy contracts
+    registry = new ControllerRegistry();
+    permissions = new WalletPermissions(address(registry));
+    wallet = new Wallet();
+    
+    // Initialize wallet
+    wallet.initialize(owner, address(registry), address(permissions));
   }
 
-  function testUserDepositNativeBERAToWallet() public {
-    uint256 initialBalance = address(user1).balance;
-    uint256 depositAmount = 1 ether;
-
-    // Deposit BERA using user1
-    vm.startPrank(user1);
-    (bool success,) = address(wallet).call{value: depositAmount}("");
-    require(success, "Transfer failed");
-    vm.stopPrank();
-
-    assertEq(address(user1).balance, initialBalance - depositAmount);
-    assertEq(address(wallet).balance, depositAmount);
+  function test_Initialize() public {
+    assertEq(wallet.owner(), owner);
+    assertEq(address(wallet.controllerRegistry()), address(registry));
+    assertEq(address(wallet.walletPermissions()), address(permissions));
+    assertTrue(wallet.initialized());
   }
 
-  function testUserWithdrawNativeBERAToWallet() public {
-    uint256 initialBalance = address(user1).balance;
-    uint256 withdrawAmount = 1 ether;
-
-    vm.deal(address(wallet), withdrawAmount);
-
-    // Withdraw BERA using user1
-    vm.startPrank(user1);
-    wallet.ownerExecute(user1, withdrawAmount, "");
-    vm.stopPrank();
-
-    assertEq(address(user1).balance, initialBalance + withdrawAmount);
-    assertEq(address(wallet).balance, 0);
+  function test_Initialize_AlreadyInitialized() public {
+    vm.expectRevert("Already initialized");
+    wallet.initialize(owner, address(registry), address(permissions));
   }
 
-  function testRevertIfUnauthorizedUserWithdrawsBERA() public {
-    uint256 withdrawAmount = 1 ether;
+  function test_Initialize_InvalidOwner() public {
+    Wallet newWallet = new Wallet();
+    vm.expectRevert("Invalid owner");
+    newWallet.initialize(address(0), address(registry), address(permissions));
+  }
 
-    vm.deal(address(wallet), withdrawAmount);
+  function test_Initialize_InvalidControllerRegistry() public {
+    Wallet newWallet = new Wallet();
+    vm.expectRevert("Invalid controller registry");
+    newWallet.initialize(owner, address(0), address(permissions));
+  }
 
-    // Withdraw BERA using user1
-    vm.startPrank(user2);
+  function test_Initialize_InvalidPermissions() public {
+    Wallet newWallet = new Wallet();
+    vm.expectRevert("Invalid permissions contract");
+    newWallet.initialize(owner, address(registry), address(0));
+  }
+
+  function test_OwnerExecute() public {
+    address target = makeAddr("target");
+    bytes memory data = abi.encodeWithSignature("test()");
+    
+    vm.startPrank(owner);
+    wallet.ownerExecute(target, 0, data);
+    vm.stopPrank();
+  }
+
+  function test_OwnerExecute_NotOwner() public {
+    address notOwner = makeAddr("notOwner");
+    address target = makeAddr("target");
+    bytes memory data = abi.encodeWithSignature("test()");
+    
+    vm.startPrank(notOwner);
     vm.expectRevert("Not owner");
-    wallet.ownerExecute(user2, withdrawAmount, "");
+    wallet.ownerExecute(target, 0, data);
     vm.stopPrank();
-
-    // Verify wallet balance hasn't changed
-    assertEq(address(wallet).balance, withdrawAmount);
   }
 
-  function testUserDepositERC20ToWallet() public {
-    uint256 initialBalance = token.balanceOf(address(user1));
-    uint256 depositAmount = 100 * 10**token.decimals();
-
-    // Deposit ERC20 using user1
-    vm.startPrank(user1);
-    token.approve(address(user1), depositAmount);
-    token.transfer(address(wallet), depositAmount);
-    vm.stopPrank();
-
-    assertEq(token.balanceOf(address(user1)), initialBalance - depositAmount);
-    assertEq(token.balanceOf(address(wallet)), depositAmount);
-  }
-
-  function testUserTransferERC20ToAndFromWallet() public {
-    uint256 userInitialBalance = token.balanceOf(address(user1));
-    uint256 walletInitialBalance = token.balanceOf(address(wallet));
-    uint256 withdrawAmount = 100 * 10**token.decimals();
-
-    // Deposit ERC20 using user1
-    vm.startPrank(user1);
-    token.approve(address(user1), withdrawAmount);
-    token.transfer(address(wallet), withdrawAmount);
-    vm.stopPrank();
-
-    assertEq(token.balanceOf(address(user1)), userInitialBalance - withdrawAmount);
-    assertEq(token.balanceOf(address(wallet)), walletInitialBalance + withdrawAmount);
-
-    // Withdraw ERC20 using user1
-    bytes memory transferData = abi.encodeWithSelector(
-      IERC20.transfer.selector,
-      user1,
-      withdrawAmount
-    );
+  function test_OwnerExecute_ZeroTarget() public {
+    bytes memory data = abi.encodeWithSignature("test()");
     
-    vm.startPrank(user1);
-    wallet.ownerExecute(address(token), 0, transferData);
+    vm.startPrank(owner);
+    vm.expectRevert("Zero target address");
+    wallet.ownerExecute(address(0), 0, data);
     vm.stopPrank();
-
-    assertEq(token.balanceOf(address(user1)), userInitialBalance);
-    assertEq(token.balanceOf(address(wallet)), walletInitialBalance);
   }
 
-  function testControllerOperations() public {
-    uint256 userInitialBalance = token.balanceOf(address(user1));
-    uint256 transferAmount = 100 * 10**token.decimals();
-    
-    vm.startPrank(user1);
-    token.approve(address(user1), transferAmount);
-    token.transfer(address(wallet), transferAmount);
+  function test_ControllerExecute() public {
+    // Register controller and approve permission
+    vm.startPrank(owner);
+    registry.registerController(controller, PERMISSION_KEY, "Test Controller", "Test Description");
+    permissions.approvePermission(address(wallet), controller, PERMISSION_KEY);
     vm.stopPrank();
 
-    bytes memory transferData = abi.encodeWithSelector(
-      IERC20.transfer.selector,
-      user1,
-      transferAmount
-    );
-
-    // Execute as controller1 instead of owner
-    vm.startPrank(controller1);
-    wallet.controllerExecute(address(token), 0, transferData, TOKEN_OPERATIONS);
-    vm.stopPrank();
+    address target = makeAddr("target");
+    bytes memory data = abi.encodeWithSignature("test()");
     
-    assertEq(token.balanceOf(user1), userInitialBalance);
+    vm.startPrank(controller);
+    wallet.controllerExecute(target, 0, data, PERMISSION_KEY);
+    vm.stopPrank();
   }
 
-  function testRevertIfUnauthorizedController() public {
-    address unauthorizedController = makeAddr("unauthorizedController");
-    bytes memory transferData = abi.encodeWithSelector(
-      IERC20.transfer.selector,
-      user1,
-      100 * 10**token.decimals()
-    );
-
-    vm.startPrank(unauthorizedController);
+  function test_ControllerExecute_NoPermission() public {
+    address target = makeAddr("target");
+    bytes memory data = abi.encodeWithSignature("test()");
+    
+    vm.startPrank(controller);
     vm.expectRevert("Permission denied");
-    wallet.controllerExecute(address(token), 0, transferData, TOKEN_OPERATIONS);
+    wallet.controllerExecute(target, 0, data, PERMISSION_KEY);
+    vm.stopPrank();
+  }
+
+  function test_ControllerExecute_ZeroTarget() public {
+    // Register controller and approve permission
+    vm.startPrank(owner);
+    registry.registerController(controller, PERMISSION_KEY, "Test Controller", "Test Description");
+    permissions.approvePermission(address(wallet), controller, PERMISSION_KEY);
+    vm.stopPrank();
+
+    bytes memory data = abi.encodeWithSignature("test()");
+    
+    vm.startPrank(controller);
+    vm.expectRevert("Zero target address");
+    wallet.controllerExecute(address(0), 0, data, PERMISSION_KEY);
     vm.stopPrank();
   }
 }

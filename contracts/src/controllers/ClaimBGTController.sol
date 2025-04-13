@@ -21,7 +21,7 @@ contract ClaimBGTController is BaseController {
      */
     function claimRewards(address wallet, address lpToken) external {
         // Get the reward vault for this LP token
-        address rewardVault = IRewardVaultFactory(rewardVaultFactory).getRewardVault(lpToken);
+        address rewardVault = IRewardVaultFactory(rewardVaultFactory).getVault(lpToken);
         require(rewardVault != address(0), "No reward vault found for LP token");
 
         // Get the wallet owner

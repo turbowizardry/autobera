@@ -11,6 +11,7 @@ import { CircleCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import REWARD_VAULT_ABI from '@/abi/berachain/RewardVault.json';
+import { ClaimBGT } from '@/components/claimBGT';
 
 export function LpTokens() {
   const { userAddress, walletAddress, vaults, isVaultsLoading, refetch: refetchVaults, hasWallet } = useData();
@@ -153,6 +154,7 @@ export function LpTokens() {
                 >
                   {isSetOperatorPending || isSetOperatorConfirming ? 'Revoking...' : 'Revoke'}
                 </Button>
+                <ClaimBGT vault={vault} />
               </>
             )}
             

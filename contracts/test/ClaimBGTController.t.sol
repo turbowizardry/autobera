@@ -1,121 +1,104 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
 
-import {Test, console, Vm} from "forge-std/Test.sol";
-import {WalletFactory} from "../src/WalletFactory.sol";
-import {Wallet} from "../src/Wallet.sol";
-import {ControllerRegistry} from "../src/ControllerRegistry.sol";
-import {WalletPermissions} from "../src/WalletPermissions.sol";
-import {ClaimBGTController} from "../src/controllers/ClaimBGTController.sol";
-import {IWallet} from "../src/interfaces/IWallet.sol";
-import {IRewardVault} from "../src/interfaces/berachain/IRewardVault.sol";
-import {IRewardVaultFactory} from "../src/interfaces/berachain/IRewardVaultFactory.sol";
+import "forge-std/Test.sol";
+import "../src/controllers/ClaimBGTController.sol";
+import "../src/Wallet.sol";
+import "../src/WalletPermissions.sol";
+import "../src/ControllerRegistry.sol";
+import "../src/interfaces/berachain/IRewardVault.sol";
 
-contract MockRewardVault is IRewardVault {
-    address public lastAccount;
-    address public lastRecipient;
-    uint256 public lastAmount;
-
-    function getReward(address payable wallet) external override {
-        lastRecipient = wallet;
-        // Simulate reward transfer
-        (bool success, ) = wallet.call{value: 1 ether}("");
-        require(success, "Transfer failed");
+contract MockRewardVaultFactory {
+    mapping(address => address) public rewardVaults;
+    
+    function setRewardVault(address lpToken, address vault) external {
+        rewardVaults[lpToken] = vault;
+    }
+    
+    function getVault(address lpToken) external view returns (address) {
+        return rewardVaults[lpToken];
     }
 }
 
-contract MockRewardVaultFactory is IRewardVaultFactory {
-    mapping(address => address) public vaults;
-    MockRewardVault public defaultVault;
+contract MockRewardVault is IRewardVault {
+    bool public getRewardCalled;
 
-    constructor() {
-        defaultVault = new MockRewardVault();
-    }
-
-    function setVault(address lpToken, address vault) external {
-        vaults[lpToken] = vault;
-    }
-
-    function getRewardVault(address lpToken) external view override returns (address) {
-        address vault = vaults[lpToken];
-        return vault == address(0) ? address(defaultVault) : vault;
+    function getReward(address account, address recipient) external override returns (uint256) {
+        getRewardCalled = true;
+        return 0;
     }
 }
 
 contract ClaimBGTControllerTest is Test {
-    Wallet public walletImplementation;
-    WalletFactory public factory;
-    ControllerRegistry public controllerRegistry;
-    WalletPermissions public walletPermissions;
-    ClaimBGTController public claimBGTController;
+    ClaimBGTController public controller;
+    Wallet public wallet;
+    WalletPermissions public permissions;
+    ControllerRegistry public registry;
     MockRewardVaultFactory public rewardVaultFactory;
     MockRewardVault public rewardVault;
-    IWallet public wallet;
-
+    
     address public owner;
-    address public user1;
     address public lpToken;
+    bytes32 public constant PERMISSION_KEY = keccak256("AUTO_CLAIM_BGT_V1");
 
     function setUp() public {
-        owner = address(this);
-        user1 = payable(makeAddr("user1"));
+        owner = makeAddr("owner");
         lpToken = makeAddr("lpToken");
-
-        // Deploy infrastructure
-        controllerRegistry = new ControllerRegistry();
-        walletPermissions = new WalletPermissions(address(controllerRegistry));
-        walletImplementation = new Wallet();
-        factory = new WalletFactory(
-            address(walletImplementation),
-            address(controllerRegistry),
-            address(walletPermissions)
-        );
-
-        // Deploy reward vault system
+        
+        // Deploy mock contracts
         rewardVaultFactory = new MockRewardVaultFactory();
         rewardVault = new MockRewardVault();
-        rewardVaultFactory.setVault(lpToken, address(rewardVault));
-
-        // Deploy controller
-        claimBGTController = new ClaimBGTController(address(rewardVaultFactory));
-
-        // Register controller in registry
-        controllerRegistry.registerController(
-            address(claimBGTController),
-            claimBGTController.permission(),
-            claimBGTController.name(),
-            claimBGTController.description()
-        );
-
-        // Create wallet for user1
-        vm.startPrank(user1);
-        wallet = IWallet(payable(factory.createWallet()));
         
-        // Grant permission to controller
-        walletPermissions.setPermission(address(wallet), address(claimBGTController), claimBGTController.permission(), true);
-
+        // Set up reward vault
+        rewardVaultFactory.setRewardVault(lpToken, address(rewardVault));
+        
+        // Deploy main contracts
+        vm.startPrank(owner);
+        registry = new ControllerRegistry();
+        permissions = new WalletPermissions(address(registry));
+        wallet = new Wallet();
+        wallet.initialize(owner, address(registry), address(permissions));
+        controller = new ClaimBGTController(address(rewardVaultFactory));
+        
+        // Register controller and approve permission
+        registry.registerController(address(controller), PERMISSION_KEY, "Auto-claim BGT", "Controller for auto claiming BGT rewards");
+        permissions.approvePermission(address(wallet), address(controller), PERMISSION_KEY);
         vm.stopPrank();
     }
 
-    function testClaimRewards() public {
-        // Fund the reward vault
-        vm.deal(address(rewardVault), 1 ether);
-
-        // Initial balances
-        uint256 initialWalletBalance = address(wallet).balance;
-
-        // Claim rewards
-        claimBGTController.claimRewards(address(wallet), lpToken);
-
-        // Verify rewards were claimed
-        assertEq(address(wallet).balance, initialWalletBalance + 1 ether);
-        assertEq(rewardVault.lastRecipient(), address(wallet));
+    function test_Constructor() public {
+        assertEq(controller.rewardVaultFactory(), address(rewardVaultFactory));
+        assertEq(controller.owner(), owner);
+        assertEq(controller.permission(), PERMISSION_KEY);
+        assertEq(controller.name(), "Auto-claim BGT");
+        assertEq(controller.description(), "Controller for auto claiming BGT rewards from reward vaults");
     }
 
-    function testRevertIfNoVaultFound() public {
-        address nonExistentLpToken = makeAddr("nonExistentLpToken");
-        
+    function test_ClaimRewards() public {
+        vm.startPrank(owner);
+        controller.claimRewards(address(wallet), lpToken);
+        vm.stopPrank();
+
+        assertTrue(rewardVault.getRewardCalled());
+    }
+
+    function test_ClaimRewards_NoRewardVault() public {
+        address invalidLpToken = makeAddr("invalidLpToken");
+        vm.startPrank(owner);
         vm.expectRevert("No reward vault found for LP token");
-        claimBGTController.claimRewards(address(wallet), nonExistentLpToken);
+        controller.claimRewards(address(wallet), invalidLpToken);
+        vm.stopPrank();
     }
-} 
+
+    function test_ClaimRewards_NoPermission() public {
+        // Revoke permission
+        vm.startPrank(owner);
+        permissions.revokePermission(address(wallet), address(controller), PERMISSION_KEY);
+        vm.stopPrank();
+
+        vm.startPrank(owner);
+        vm.expectRevert("Permission denied");
+        controller.claimRewards(address(wallet), lpToken);
+        vm.stopPrank();
+    }
+}

@@ -1,8 +1,8 @@
 import { useChainId } from 'wagmi'
 import contracts from '@/data/contracts.json'
+import berachainContracts from '@/data/berachain.json'
 
-type NetworkKey = 'berachain' | 'testnet'
-
+type NetworkKey = 'mainnet' | 'testnet'
 interface ContractAddresses {
   ControllerRegistry: {
     address: string
@@ -19,6 +19,9 @@ interface ContractAddresses {
   RewardVaultFactory?: {
     address: string
   }
+  BGT?: {
+    address: string
+  }
   controllers: {
     ClaimBGTController: {
       address: string
@@ -31,15 +34,16 @@ export function useContracts() {
   
   const getNetworkKey = (): NetworkKey => {
     // Default to berachain if no chain selected
-    if (!chainId) return 'berachain'
+    if (!chainId) return 'mainnet'
     // You can add more chain ID checks here if needed
     if (chainId === 80069) return 'testnet'
     
-    return 'berachain'
+    return 'mainnet'
   }
 
   const networkKey = getNetworkKey()
   const networkContracts = contracts.networks[networkKey]?.contracts as ContractAddresses
+  const berachainNetworkContracts = berachainContracts.networks[networkKey]?.contracts as ContractAddresses
 
   if (!networkContracts) {
     console.warn(`No contracts found for network: ${networkKey}`)
@@ -52,6 +56,7 @@ export function useContracts() {
     walletFactory: networkContracts.WalletFactory.address,
     wallet: networkContracts.Wallet.address,
     rewardVaultFactory: networkContracts.RewardVaultFactory?.address,
+    bgt: berachainNetworkContracts?.BGT?.address,
     controllers: networkContracts.controllers
   }
 } 

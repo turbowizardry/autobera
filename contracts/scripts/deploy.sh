@@ -101,7 +101,7 @@ if [ $? -eq 0 ]; then
     cp out/WalletPermissions.sol/WalletPermissions.json ../abi/
     cp out/Wallet.sol/Wallet.json ../abi/
     cp out/WalletFactory.sol/WalletFactory.json ../abi/
-    cp out/controllers/ClaimBGTController.sol/ClaimBGTController.json ../abi/
+    cp out/ClaimBGTController.sol/ClaimBGTController.json ../abi/controllers/
     echo "ABIs copied successfully!"
 else
     echo "Deployment failed!"

@@ -9,6 +9,17 @@ import { Vault } from '@/types/vault';
 
 import WALLET_FACTORY_ABI from '@/abi/WalletFactory.json';
 
+// Standard ERC20 ABI for balanceOf function
+const ERC20_ABI = [
+  {
+    "constant": true,
+    "inputs": [{"name": "_owner", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "balance", "type": "uint256"}],
+    "type": "function"
+  }
+] as const;
+
 interface DataContextType {
   userAddress: string | undefined;
   walletAddress: string | undefined;
@@ -16,6 +27,7 @@ interface DataContextType {
   contracts: any;
   vaults: Vault[];
   isVaultsLoading: boolean;
+  bgtBalance: bigint | undefined;
   refetch: () => void;
 }
 
@@ -28,9 +40,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   
   const [walletAddress, setWalletAddress] = useState<string | undefined>(undefined);
   const [hasWallet, setHasWallet] = useState(false);
-  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const [shouldRefetchVaults, setShouldRefetchVaults] = useState(false);
 
-  const { data, refetch } = useReadContract({
+  const { data: walletData, refetch: refetchWallet } = useReadContract({
     address: contracts?.walletFactory as `0x${string}`,
     abi: WALLET_FACTORY_ABI.abi,
     functionName: 'getWalletByOwner',
@@ -43,30 +55,58 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
-  const { vaults, isVaultsLoading } = useVaults(userAddress, chainId, walletAddress, refetchTrigger);
+  const { data: bgtBalance } = useReadContract({
+    address: contracts?.bgt as `0x${string}`,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: [walletAddress!],
+    query: {
+      enabled: !!walletAddress && !!contracts?.bgt,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true
+    }
+  });
+
+  const { vaults, isVaultsLoading } = useVaults(userAddress, chainId, walletAddress, shouldRefetchVaults);
 
   useEffect(() => {
-    if (data) {
-      setWalletAddress(data as string);
-      setHasWallet(data !== '0x0000000000000000000000000000000000000000');
+    if (walletData) {
+      setWalletAddress(walletData as string);
+      setHasWallet(walletData !== '0x0000000000000000000000000000000000000000');
     } else {
       setWalletAddress(undefined);
       setHasWallet(false);
     }
-  }, [data, chainId]);
+  }, [walletData]);
 
   useEffect(() => {
     if (userAddress && contracts?.walletFactory) {
-      refetch();
+      refetchWallet();
     }
-  }, [chainId, userAddress, contracts?.walletFactory, refetch]);
+  }, [userAddress, contracts?.walletFactory]);
+
+  useEffect(() => {
+    if (shouldRefetchVaults) {
+      setShouldRefetchVaults(false);
+    }
+  }, [shouldRefetchVaults]);
 
   const handleRefetch = () => {
-    setRefetchTrigger(prev => prev + 1);
+    setShouldRefetchVaults(true);
   };
 
   return (
-    <DataContext.Provider value={{ userAddress, walletAddress, hasWallet, contracts, vaults, isVaultsLoading, refetch: handleRefetch }}>
+    <DataContext.Provider value={{ 
+      userAddress, 
+      walletAddress, 
+      hasWallet, 
+      contracts, 
+      vaults, 
+      isVaultsLoading, 
+      bgtBalance: bgtBalance as bigint | undefined,
+      refetch: handleRefetch 
+    }}>
       {children}
     </DataContext.Provider>
   );

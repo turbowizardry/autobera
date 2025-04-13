@@ -1,0 +1,18 @@
+{
+  "networks": {
+    "mainnet": {
+      "contracts": {
+        "BGT": {
+          "address": "0x078d2439B8F138583ca5D013451ce47b6846e7e6"
+        }
+      }
+    },
+    "testnet": {
+      "contracts": {
+        "BGT": {
+          "address": "0x656b95E550C07a9ffe548bd4085c72418Ceb1dba"
+        }
+      }
+    }
+  }
+}
