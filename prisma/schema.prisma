@@ -1,0 +1,69 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Vault {
+  id            String   @id @default(cuid())
+  vaultAddress  String   @unique
+  name          String
+  protocol      String
+  logoURI       String
+  network       String   // 'mainnet' or 'testnet'
+  lastUpdated   DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  // Cached data
+  totalEarned   BigInt?
+  operators     VaultOperator[]
+
+  @@index([network])
+}
+
+model VaultOperator {
+  id          String   @id @default(cuid())
+  vaultId     String
+  vault       Vault    @relation(fields: [vaultId], references: [id])
+  operator    String   // operator address
+  isActive    Boolean  @default(true)
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([vaultId, operator])
+  @@index([operator])
+}
+
+model Controller {
+  id              String   @id @default(cuid())
+  address         String   @unique
+  name            String
+  permissionKey   String
+  description     String
+  isActive        Boolean  @default(true)
+  network         String   // 'mainnet' or 'testnet'
+  lastUpdated     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  permissions     WalletPermission[]
+
+  @@index([network])
+  @@index([permissionKey])
+}
+
+model WalletPermission {
+  id            String     @id @default(cuid())
+  walletAddress String
+  controllerId  String
+  controller    Controller @relation(fields: [controllerId], references: [id])
+  isApproved    Boolean    @default(false)
+  approvedAt    DateTime?
+  lastUpdated   DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+
+  @@unique([walletAddress, controllerId])
+  @@index([walletAddress])
+} 
